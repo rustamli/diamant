@@ -1,3 +1,5 @@
+*.db
+
 # Node modules
 node_modules/
 
