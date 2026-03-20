@@ -9,6 +9,7 @@ const DEFAULT_DB_PATH = path.join(CONFIG_DIR, 'default.db');
 export interface CliConfig {
   dbPath: string;
   activeBaseId?: string;
+  activeTableId?: string;
 }
 
 function ensureConfigDir(): void {
@@ -49,5 +50,17 @@ export function getActiveBaseId(): string | undefined {
 export function setActiveBaseId(baseId: string): void {
   const config = loadConfig();
   config.activeBaseId = baseId;
+  delete config.activeTableId;
+  saveConfig(config);
+}
+
+export function getActiveTableId(): string | undefined {
+  const config = loadConfig();
+  return config.activeTableId;
+}
+
+export function setActiveTableId(tableId: string): void {
+  const config = loadConfig();
+  config.activeTableId = tableId;
   saveConfig(config);
 }

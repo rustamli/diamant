@@ -3,7 +3,7 @@ import { Diamant } from 'diamant';
 import chalk from 'chalk';
 import readline from 'readline';
 import { select } from '@inquirer/prompts';
-import { getDbPath, getActiveBaseId, setActiveBaseId } from '../config.js';
+import { getDbPath, getActiveBaseId, setActiveBaseId, getActiveTableId, setActiveTableId } from '../config.js';
 import { renderBaseList, renderTableList, renderRowsTable, renderColumnList, renderRowDetail } from '../display.js';
 
 export function registerShellCommand(program: Command): void {
@@ -65,10 +65,10 @@ export function registerShellCommand(program: Command): void {
 ${chalk.bold('Commands:')}
   bases                       Select a base interactively
   use <baseId>                Set active base
-  tables                      Select a table interactively
-  show <tableId>              Show table contents
-  columns <tableId>           List columns
-  row <tableId> <rowId>       Show row detail
+  tables                      Select active table interactively
+  show [tableId]              Show table contents (active table if omitted)
+  columns [tableId]           List columns (active table if omitted)
+  row [tableId] <rowId>       Show row detail (active table if omitted)
   sql <query>                 Run raw SQL (read-only)
   exit                        Exit shell
 `);
@@ -96,7 +96,13 @@ ${chalk.bold('Commands:')}
               if (selectedId) {
                 const base = db.getBase(selectedId);
                 setActiveBaseId(selectedId);
-                console.log(`Active base: ${chalk.bold(base.name)}`);
+                const tables = base.listTables();
+                if (tables.length > 0) {
+                  setActiveTableId(tables[0].id);
+                  console.log(`Active base: ${chalk.bold(base.name)}, active table: ${chalk.bold(tables[0].name)}`);
+                } else {
+                  console.log(`Active base: ${chalk.bold(base.name)}`);
+                }
               }
               break;
             }
@@ -108,7 +114,13 @@ ${chalk.bold('Commands:')}
               }
               const base = db.getBase(parts[1]);
               setActiveBaseId(parts[1]);
-              console.log(`Active base: ${chalk.bold(base.name)}`);
+              const tables = base.listTables();
+              if (tables.length > 0) {
+                setActiveTableId(tables[0].id);
+                console.log(`Active base: ${chalk.bold(base.name)}, active table: ${chalk.bold(tables[0].name)}`);
+              } else {
+                console.log(`Active base: ${chalk.bold(base.name)}`);
+              }
               break;
             }
 
@@ -133,27 +145,25 @@ ${chalk.bold('Commands:')}
               });
               if (selectedId) {
                 const table = base.getTable(selectedId);
-                const columns = table.listColumns();
-                const rows = table.getRows({ resolveLinks: true });
-                console.log(chalk.bold(table.name));
-                console.log(renderRowsTable(rows, columns));
-                console.log(chalk.dim(`${rows.length} rows`));
+                setActiveTableId(selectedId);
+                console.log(`Active table: ${chalk.bold(table.name)}`);
               }
               break;
             }
 
             case 'show': {
-              if (!parts[1]) {
-                console.log(chalk.red('Usage: show <tableId>'));
-                break;
-              }
               const baseId = getActiveBaseId();
               if (!baseId) {
                 console.log(chalk.red('No active base.'));
                 break;
               }
+              const tableId = parts[1] || getActiveTableId();
+              if (!tableId) {
+                console.log(chalk.red('No active table. Run: tables'));
+                break;
+              }
               const base = db.getBase(baseId);
-              const table = base.getTable(parts[1]);
+              const table = base.getTable(tableId);
               const columns = table.listColumns();
               const rows = table.getRows({ resolveLinks: true });
               console.log(chalk.bold(table.name));
@@ -163,35 +173,38 @@ ${chalk.bold('Commands:')}
             }
 
             case 'columns': {
-              if (!parts[1]) {
-                console.log(chalk.red('Usage: columns <tableId>'));
-                break;
-              }
               const baseId = getActiveBaseId();
               if (!baseId) {
                 console.log(chalk.red('No active base.'));
                 break;
               }
+              const tableId = parts[1] || getActiveTableId();
+              if (!tableId) {
+                console.log(chalk.red('No active table. Run: tables'));
+                break;
+              }
               const base = db.getBase(baseId);
-              const table = base.getTable(parts[1]);
+              const table = base.getTable(tableId);
               console.log(renderColumnList(table.listColumns()));
               break;
             }
 
             case 'row': {
-              if (!parts[1] || !parts[2]) {
-                console.log(chalk.red('Usage: row <tableId> <rowId>'));
-                break;
-              }
               const baseId = getActiveBaseId();
               if (!baseId) {
                 console.log(chalk.red('No active base.'));
                 break;
               }
+              const activeTable = parts.length >= 3 ? parts[1] : getActiveTableId();
+              const rowId = parts.length >= 3 ? parts[2] : parts[1];
+              if (!activeTable || !rowId) {
+                console.log(chalk.red('Usage: row [tableId] <rowId>'));
+                break;
+              }
               const base = db.getBase(baseId);
-              const table = base.getTable(parts[1]);
+              const table = base.getTable(activeTable);
               const columns = table.listColumns();
-              const r = table.getRow(parts[2], { resolveLinks: true });
+              const r = table.getRow(rowId, { resolveLinks: true });
               console.log(renderRowDetail(r, columns));
               break;
             }

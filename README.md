@@ -18,6 +18,14 @@ npm run build
 
 Requires Node.js >= 18.
 
+### Global CLI Install
+
+To use the `diamant` command from anywhere in your terminal:
+
+```bash
+npm link --workspace=packages/diamant-cli
+```
+
 ### Library Usage
 
 ```typescript
