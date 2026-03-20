@@ -1,4 +1,5 @@
 import type Database from 'better-sqlite3';
+import * as fs from 'fs';
 import type { BaseRecord, TableRecord } from './types.js';
 import { DiamantNotFoundError } from './errors.js';
 import { Table } from './table.js';
@@ -103,7 +104,6 @@ export class Base {
   }
 
   exportJSON(filePath: string): void {
-    const fs = require('fs') as typeof import('fs');
     const tables = this.listTables();
     const data: Record<string, unknown> = {
       base: { id: this.record.id, name: this.record.name },
@@ -118,7 +118,6 @@ export class Base {
   }
 
   importJSON(filePath: string): void {
-    const fs = require('fs') as typeof import('fs');
     const content = fs.readFileSync(filePath, 'utf-8');
     const data = JSON.parse(content) as {
       tables: Array<{

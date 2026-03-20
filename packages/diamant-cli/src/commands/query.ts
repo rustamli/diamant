@@ -72,7 +72,8 @@ export function registerQueryCommands(program: Command): void {
     .option('--sort <sort>', 'Sort expression (e.g. "Points desc")')
     .option('--limit <n>', 'Limit results', parseInt)
     .option('--offset <n>', 'Offset results', parseInt)
-    .action((tableId: string, opts: { filter?: string; sort?: string; limit?: number; offset?: number }) => {
+    .option('--with-id', 'Show row ID column')
+    .action((tableId: string, opts: { filter?: string; sort?: string; limit?: number; offset?: number; withId?: boolean }) => {
       const dbPath = getDbPath(program.opts().db);
       const baseId = requireActiveBase();
       const db = new Diamant(dbPath);
@@ -93,7 +94,7 @@ export function registerQueryCommands(program: Command): void {
         if (isJson) {
           console.log(JSON.stringify(rows));
         } else {
-          console.log(renderRowsTable(rows, columns));
+          console.log(renderRowsTable(rows, columns, { withId: opts.withId }));
           console.log(chalk.dim(`${rows.length} rows`));
         }
       } finally {

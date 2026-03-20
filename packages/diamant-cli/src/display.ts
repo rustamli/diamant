@@ -33,11 +33,31 @@ export function colorType(type: string): string {
   return colorFn(type);
 }
 
-export function formatCellValue(value: unknown, type?: string): string {
+export function formatCellValue(value: unknown, column?: ColumnRecord | string): string {
   if (value === null || value === undefined) return chalk.dim('—');
   if (typeof value === 'boolean') return value ? chalk.green('✓') : chalk.dim('✗');
+
+  const type = typeof column === 'string' ? column : column?.type;
+  const config = typeof column === 'object' ? column?.config : undefined;
+
+  // Resolve singleSelect/multiSelect option IDs to names
+  if (type === 'singleSelect' && typeof value === 'string' && config) {
+    const options = (config as any).options as Array<{ id: string; name: string }> | undefined;
+    const option = options?.find((o) => o.id === value);
+    return option ? option.name : String(value);
+  }
+
   if (Array.isArray(value)) {
     if (value.length === 0) return chalk.dim('[]');
+    if (type === 'multiSelect' && config) {
+      const options = (config as any).options as Array<{ id: string; name: string }> | undefined;
+      if (options) {
+        return value.map((v) => {
+          const option = options.find((o) => o.id === v);
+          return option ? option.name : String(v);
+        }).join(', ');
+      }
+    }
     // Check if it's an array of objects (expanded link records)
     if (typeof value[0] === 'object' && value[0] !== null && 'id' in value[0]) {
       return value.map((r: any) => {
@@ -57,21 +77,23 @@ export function formatCellValue(value: unknown, type?: string): string {
   return String(value);
 }
 
-export function renderRowsTable(rows: RowData[], columns: ColumnRecord[]): string {
+export function renderRowsTable(rows: RowData[], columns: ColumnRecord[], options?: { withId?: boolean }): string {
   if (rows.length === 0) return chalk.dim('No rows found.');
 
   const displayCols = columns.slice(0, 10); // Limit columns for display
+  const showId = options?.withId ?? false;
+  const head = showId
+    ? ['ID', ...displayCols.map((c) => chalk.bold(c.name))]
+    : displayCols.map((c) => chalk.bold(c.name));
   const table = new Table({
-    head: ['ID', ...displayCols.map((c) => chalk.bold(c.name))],
+    head,
     style: { head: [], border: [] },
     wordWrap: true,
   });
 
   for (const row of rows) {
-    table.push([
-      chalk.dim(row.id),
-      ...displayCols.map((col) => formatCellValue(row.cells[col.name], col.type)),
-    ]);
+    const cells = displayCols.map((col) => formatCellValue(row.cells[col.name], col));
+    table.push(showId ? [chalk.dim(row.id), ...cells] : cells);
   }
 
   return table.toString();
@@ -110,7 +132,7 @@ export function renderRowDetail(row: RowData, columns: ColumnRecord[]): string {
     const value = row.cells[col.name];
     table.push([
       chalk.bold(col.name) + ' ' + chalk.dim(`(${col.type})`),
-      formatCellValue(value, col.type),
+      formatCellValue(value, col),
     ]);
   }
 

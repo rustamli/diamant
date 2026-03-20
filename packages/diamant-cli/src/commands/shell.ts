@@ -36,13 +36,19 @@ export function registerShellCommand(program: Command): void {
       async function runSelect<T>(opts: { message: string; choices: Array<{ name: string; value: T }> }): Promise<T | null> {
         inSelect = true;
         rl.close();
+        const ac = new AbortController();
+        const onKeypress = (_ch: string, key: { name?: string }) => {
+          if (key?.name === 'escape') ac.abort();
+        };
+        process.stdin.on('keypress', onKeypress);
         try {
-          const result = await select(opts);
+          const result = await select(opts, { signal: ac.signal });
           return result;
         } catch {
-          // user cancelled with Ctrl+C
+          // user cancelled with Escape or Ctrl+C
           return null;
         } finally {
+          process.stdin.removeListener('keypress', onKeypress);
           inSelect = false;
           rl = createReadline();
         }

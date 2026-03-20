@@ -99,7 +99,8 @@ export function registerTableCommands(program: Command): void {
   table
     .command('show <tableId>')
     .description('Show table contents')
-    .action((tableId: string) => {
+    .option('--with-id', 'Show row ID column')
+    .action((tableId: string, opts: { withId?: boolean }) => {
       const dbPath = getDbPath(program.opts().db);
       const baseId = requireActiveBase(program);
       const db = new Diamant(dbPath);
@@ -113,7 +114,7 @@ export function registerTableCommands(program: Command): void {
           console.log(JSON.stringify({ columns, rows }));
         } else {
           console.log(chalk.bold(`Table: ${t.name}`) + chalk.dim(` (${t.id})`));
-          console.log(renderRowsTable(rows, columns));
+          console.log(renderRowsTable(rows, columns, { withId: opts.withId }));
           console.log(chalk.dim(`${rows.length} rows`));
         }
       } finally {

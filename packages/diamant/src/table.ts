@@ -1,4 +1,5 @@
 import type Database from 'better-sqlite3';
+import * as fs from 'fs';
 import type {
   ColumnDefinition,
   ColumnRecord,
@@ -616,8 +617,6 @@ export class Table {
   // --- Import/Export ---
 
   importCSV(filePath: string): void {
-    // Lazy import to avoid top-level fs dependency for in-memory usage
-    const fs = require('fs') as typeof import('fs');
     const content = fs.readFileSync(filePath, 'utf-8');
     const lines = content.split('\n').filter((l) => l.trim());
     if (lines.length === 0) return;
@@ -649,7 +648,6 @@ export class Table {
   }
 
   exportCSV(filePath: string): void {
-    const fs = require('fs') as typeof import('fs');
     const columns = this.listColumns().filter((c) => !isComputedType(c.type));
     const rows = this.getRows();
 
