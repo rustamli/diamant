@@ -2,6 +2,8 @@
 
 A headless Airtable-like meta-database built on SQLite. Diamant gives you a structured, relational data model — bases, tables, typed columns, rows — backed by a single SQLite file with zero migrations.
 
+<img width="1414" height="960" alt="image" src="https://github.com/user-attachments/assets/9b5c4548-4686-4ea9-bcce-eca9f230f6b2" />
+
 ## Packages
 
 | Package | Description |
