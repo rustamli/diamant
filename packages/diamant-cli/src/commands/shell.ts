@@ -5,6 +5,7 @@ import readline from 'readline';
 import { select } from '@inquirer/prompts';
 import { getDbPath, getActiveBaseId, setActiveBaseId, getActiveTableId, setActiveTableId } from '../config.js';
 import { renderBaseList, renderTableList, renderRowsTable, renderColumnList, renderRowDetail } from '../display.js';
+import { openViewer } from '../viewer.js';
 
 export function registerShellCommand(program: Command): void {
   program
@@ -72,7 +73,7 @@ ${chalk.bold('Commands:')}
   bases                       Select a base interactively
   use <baseId>                Set active base
   tables                      Select active table interactively
-  show [tableId]              Show table contents (active table if omitted)
+  show [tableId]              Open full-screen table viewer (q to exit)
   columns [tableId]           List columns (active table if omitted)
   row [tableId] <rowId>       Show row detail (active table if omitted)
   sql <query>                 Run raw SQL (read-only)
@@ -170,11 +171,12 @@ ${chalk.bold('Commands:')}
               }
               const base = db.getBase(baseId);
               const table = base.getTable(tableId);
-              const columns = table.listColumns();
-              const rows = table.getRows({ resolveLinks: true });
-              console.log(chalk.bold(table.name));
-              console.log(renderRowsTable(rows, columns));
-              console.log(chalk.dim(`${rows.length} rows`));
+              // Close readline before launching viewer, reopen after
+              inSelect = true;
+              rl.close();
+              await openViewer(table, (id) => base.getTable(id));
+              inSelect = false;
+              rl = createReadline();
               break;
             }
 

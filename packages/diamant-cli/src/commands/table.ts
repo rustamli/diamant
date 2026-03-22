@@ -3,6 +3,7 @@ import { Diamant } from 'diamant';
 import chalk from 'chalk';
 import { getDbPath, getActiveBaseId } from '../config.js';
 import { renderTableList, renderRowsTable } from '../display.js';
+import { openViewer } from '../viewer.js';
 
 function requireActiveBase(program: Command): string {
   const baseId = getActiveBaseId();
@@ -98,24 +99,30 @@ export function registerTableCommands(program: Command): void {
 
   table
     .command('show <tableId>')
-    .description('Show table contents')
+    .description('Show table contents in full-screen viewer')
     .option('--with-id', 'Show row ID column')
-    .action((tableId: string, opts: { withId?: boolean }) => {
+    .option('--plain', 'Print table without full-screen viewer')
+    .action(async (tableId: string, opts: { withId?: boolean; plain?: boolean }) => {
       const dbPath = getDbPath(program.opts().db);
       const baseId = requireActiveBase(program);
       const db = new Diamant(dbPath);
       try {
         const base = db.getBase(baseId);
         const t = base.getTable(tableId);
-        const columns = t.listColumns();
         const isJson = program.opts().format === 'json';
-        const rows = t.getRows({ resolveLinks: !isJson });
-        if (isJson) {
-          console.log(JSON.stringify({ columns, rows }));
+
+        if (isJson || opts.plain) {
+          const columns = t.listColumns();
+          const rows = t.getRows({ resolveLinks: !isJson });
+          if (isJson) {
+            console.log(JSON.stringify({ columns, rows }));
+          } else {
+            console.log(chalk.bold(`Table: ${t.name}`) + chalk.dim(` (${t.id})`));
+            console.log(renderRowsTable(rows, columns, { withId: opts.withId }));
+            console.log(chalk.dim(`${rows.length} rows`));
+          }
         } else {
-          console.log(chalk.bold(`Table: ${t.name}`) + chalk.dim(` (${t.id})`));
-          console.log(renderRowsTable(rows, columns, { withId: opts.withId }));
-          console.log(chalk.dim(`${rows.length} rows`));
+          await openViewer(t, (id) => base.getTable(id));
         }
       } finally {
         db.close();
